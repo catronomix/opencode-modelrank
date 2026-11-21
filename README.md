@@ -4,8 +4,7 @@ An OpenCode V2 plugin that ranks **OpenCode Zen / Go** models by benchmark score
 against real per-token prices — a `/ocmodels` menu to choose which models and
 which sort order, and a live comparison in the sidebar.
 
-It is a TypeScript re-make of [codesam88/opencode-models](https://github.com/codesam88/opencode-models)
-(the `ocm` Python CLI), keeping its ranking rules:
+It keeps these ranking rules from the original `ocm` CLI:
 
 - five tracked benchmarks — **Terminal-Bench 2.1**, **Terminal-Bench 4.0**,
   **SWE-Bench Verified**, **SWE-Bench Pro**, **DeepSWE 1.1**;
@@ -32,9 +31,8 @@ Or edit the TUI plugin list in `cli.json` directly:
 
 The same entry works in `opencode.jsonc`'s `plugins` array: the package declares
 a server part (`.`) and a TUI part (`./tui`), so either file loads the sidebar
-and the command. The bare name resolves to the latest release (`@latest` does
-the same); pinning a version is optional if you need to hold one, `@next` tracks
-prereleases, or use `github:catronomix/opencode-ocmodels` to install from git.
+and the command. The bare name installs the latest release; use `@next` for
+prereleases.
 
 No credentials are involved: everything is fetched from OpenCode's public
 endpoints, anonymously.
@@ -95,8 +93,10 @@ Published builds are bundled to `dist/` (ESM + `.d.ts`); `@opencode/plugin`,
 `@opentui/*` and `solid-js` stay external peers so the plugin shares the host's
 copies.
 
-## Attribution
+## Credits
 
-Ranking semantics and benchmark selection are ported from
-`opencode-models` by codesam (MIT). Benchmark numbers are taken from
-OpenCode's model catalog, which cites each run's source page.
+A TypeScript re-make of [`opencode-models`](https://pypi.org/project/opencode-models/)
+by codesam ([repo](https://github.com/codesam88/opencode-models)), the `ocm`
+Python CLI (MIT); ranking semantics and benchmark selection are ported from it.
+Benchmark numbers are taken from OpenCode's model catalog, which cites each run's
+source page.
