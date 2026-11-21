@@ -1,6 +1,9 @@
 {
-  "name": "opencode-ocmodels",
+  "name": "@catronomix/opencode-ocmodels",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price, with a /ocmodels menu and a sidebar comparison.",
   "type": "module",
   "license": "MIT",

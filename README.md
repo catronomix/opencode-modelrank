@@ -19,14 +19,14 @@ It is a TypeScript re-make of [codesam88/opencode-models](https://github.com/cod
 ## Install
 
 ```sh
-opencode plugin add opencode-ocmodels@0.1.0
+opencode plugin add @catronomix/opencode-ocmodels@0.1.0
 ```
 
 Or edit the TUI plugin list in `cli.json` directly:
 
 ```json title="~/.config/opencode/cli.json"
 {
-  "plugins": ["opencode-ocmodels@0.1.0"]
+  "plugins": ["@catronomix/opencode-ocmodels@0.1.0"]
 }
 ```
 
