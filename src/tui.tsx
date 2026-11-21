@@ -286,13 +286,18 @@ type SidebarProps = {
   open: () => Promise<void>
 }
 
-type Tone = "lead" | "second" | "third" | "plain" | "faint"
+const DAY_MS = 86_400_000
 
-const MEDALS: Tone[] = ["lead", "second", "third"]
+/** `strong` is the only stronger verified shade of `markdown.heading`; there is no heading ramp in the host schema. */
+function scoreShade(score: number | null): "heading" | "strong" | undefined {
+  if (score === null) return undefined
+  if (score >= 95) return "strong"
+  if (score >= 80) return "heading"
+  return undefined
+}
 
-function tone(score: number | null, index: number): Tone {
-  if (score === null) return "faint"
-  return MEDALS[index] ?? "plain"
+function isStale(at: number): boolean {
+  return at > 0 && Date.now() - at >= DAY_MS
 }
 
 export function Sidebar(props: SidebarProps) {
@@ -312,14 +317,17 @@ export function Sidebar(props: SidebarProps) {
   const shown = createMemo(() => rows().slice(0, Math.max(1, props.settings.rows)))
   const tones = createMemo(() => {
     const theme = props.context.theme
+    const markdown = theme.markdown ?? {}
     return {
-      lead: theme.text.action.primary.base,
-      second: theme.text.feedback.success.base,
-      third: theme.text.feedback.info.base,
-      cheap: theme.text.feedback.success.base,
+      current: theme.text.action.primary.base,
       plain: theme.text.muted,
       faint: theme.text.faint,
       warn: theme.text.feedback.warning.base,
+      error: theme.text.feedback?.error?.base,
+      link: markdown.linkText,
+      heading: markdown.heading,
+      strong: markdown.strong,
+      cheap: markdown.emphasis,
     }
   })
 
@@ -333,7 +341,8 @@ export function Sidebar(props: SidebarProps) {
     if (width <= 0) return 18
     return Math.max(6, width - ROW_OVERHEAD)
   })
-  const fit = (text: string) => truncate(text, Math.max(12, boxWidth() || 34))
+  const fitWidth = () => Math.max(12, boxWidth() || 34)
+  const fit = (text: string) => truncate(text, fitWidth())
 
   const line = (row: ReturnType<typeof buildRows>[number], index: number, score: number | null) => {
     const width = nameWidth()
@@ -341,10 +350,14 @@ export function Sidebar(props: SidebarProps) {
     const rankText = String(index + 1).padStart(2)
     const scoreText = score === null ? " --" : String(Math.round(score)).padStart(3)
     const cost = (row.entry.free ? "free" : money(row.tokenCost)).padStart(5)
-    return { head: `${rankText} ${name} │${scoreText} `, cost }
+    return { head: `${rankText} ${name} │`, score: `${scoreText} `, cost }
   }
 
   let root: BoxRenderable | undefined
+
+  const footHead = () => `${shown().length}/${rows().length} · /ocmodels`
+  const footSeparator = " · "
+  const footRoom = () => fitWidth() - Math.min(footHead().length, fitWidth()) - footSeparator.length
 
   return (
     <box
@@ -358,7 +371,7 @@ export function Sidebar(props: SidebarProps) {
       }}
     >
       <box flexDirection="row">
-        <text fg={tones().lead}>MODELS</text>
+        <text fg={tones().current}>MODELS</text>
         <text fg={tones().plain}>{` ▸ ${SORT_LABEL[props.settings.sort]}`}</text>
       </box>
       <text fg={tones().faint}>{fit(`focus: ${FOCUS_LABEL[props.settings.focus]}`)}</text>
@@ -369,18 +382,26 @@ export function Sidebar(props: SidebarProps) {
       {shown().map((row, index) => {
         const score = focusScore(row, props.settings.focus)
         const parts = line(row, index, score)
-        const role = tone(score, index)
         const currentRow = isCurrent(row.entry)
+        const shade = scoreShade(score)
+        const scoreFg = (shade === "strong" ? tones().strong ?? tones().heading : shade === "heading" ? tones().heading : undefined) ?? tones().plain
+        const costFg = row.tokenCost < 1 ? tones().cheap ?? tones().plain : tones().plain
         return (
           <box flexDirection="row">
-            <text fg={currentRow ? tones().lead : tones()[role]}>{currentRow ? "▸" : " "}</text>
-            <text fg={tones()[role]}>{parts.head}</text>
-            <text fg={row.entry.free && role !== "faint" ? tones().cheap : tones()[role]}>{parts.cost}</text>
+            <text fg={currentRow ? tones().current : tones().plain}>{currentRow ? "▸" : " "}</text>
+            <text fg={tones().plain}>{parts.head}</text>
+            <text fg={scoreFg}>{parts.score}</text>
+            <text fg={costFg}>{parts.cost}</text>
           </box>
         )
       })}
       <text> </text>
-      <text fg={tones().faint}>{fit(`${shown().length}/${rows().length} · /ocmodels · ${age(props.store.at)}`)}</text>
+      <box flexDirection="row">
+        <text fg={tones().link}>{fit(footHead())}</text>
+        {footRoom() > 0 ? (
+          <text fg={isStale(props.store.at) ? tones().error : tones().link}>{`${footSeparator}${truncate(age(props.store.at), footRoom())}`}</text>
+        ) : null}
+      </box>
       {props.store.status === "ready" && rows().some((row) => row.score === null) ? (
         <text fg={tones().faint}>{fit(`${rows().filter((row) => row.score === null).length} unranked (1 benchmark or none)`)}</text>
       ) : null}
