@@ -2,3 +2,6 @@ node_modules
 dist
 *.log
 snapshot.json
+
+# shared publishing guide lives in the parent folder (C:\GITHUB\PUBLISH-GUIDE.md)
+PUBLISH-GUIDE.md
