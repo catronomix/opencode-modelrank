@@ -18,18 +18,25 @@ It is a TypeScript re-make of [codesam88/opencode-models](https://github.com/cod
 
 ## Install
 
-Add the package directory (or the published package name) to the TUI plugin
-list in `cli.json`, then restart OpenCode:
+```sh
+opencode plugin add opencode-ocmodels@0.1.0
+```
+
+Or edit the TUI plugin list in `cli.json` directly:
 
 ```json title="~/.config/opencode/cli.json"
 {
-  "plugins": ["C:/GITHUB/opencode-ocmodels"]
+  "plugins": ["opencode-ocmodels@0.1.0"]
 }
 ```
 
-Alternatively, with a server part present, the same entry works in
-`opencode.jsonc`'s `plugins` array. The plugin declares both parts, so either
-loads the sidebar and the command.
+The same entry works in `opencode.jsonc`'s `plugins` array: the package declares
+a server part (`.`) and a TUI part (`./tui`), so either file loads the sidebar
+and the command. Pin the exact version; drop the `@version` suffix to track
+releases, or use `github:catronomix/opencode-ocmodels` to install from git.
+
+No credentials are involved: everything is fetched from OpenCode's public
+endpoints, anonymously.
 
 The sidebar must be visible for the comparison panel to appear:
 
@@ -78,9 +85,14 @@ required.
 ```sh
 npm install
 npm test              # ranking logic, node:test
-npx tsc --noEmit      # typecheck against the installed plugin SDK
+npm run typecheck     # tsc --noEmit
+npm run build         # tsup -> dist/ (also runs on prepack)
 node scripts/inspect.ts   # live check of coverage + top rows per view
 ```
+
+Published builds are bundled to `dist/` (ESM + `.d.ts`); `@opencode/plugin`,
+`@opentui/*` and `solid-js` stay external peers so the plugin shares the host's
+copies.
 
 ## Attribution
 

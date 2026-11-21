@@ -4,22 +4,55 @@
   "description": "OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price, with a /ocmodels menu and a sidebar comparison.",
   "type": "module",
   "license": "MIT",
-  "keywords": ["opencode", "opencode-plugin", "models", "benchmarks", "pricing", "zen", "go"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catronomix/opencode-ocmodels.git"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "models",
+    "benchmarks",
+    "pricing",
+    "zen",
+    "go"
+  ],
   "exports": {
-    ".": "./src/index.ts",
-    "./tui": "./src/tui.tsx"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tui": {
+      "types": "./dist/tui.d.ts",
+      "import": "./dist/tui.js"
+    }
   },
-  "files": ["src"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
-    "test": "node --test test/logic.test.ts"
-  },
-  "dependencies": {
-    "@opencode/plugin": "latest"
+    "build": "tsup",
+    "prepack": "npm run build",
+    "test": "node --test test/logic.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@opentui/core": ">=0.6.6",
-    "@opentui/solid": ">=0.6.6",
-    "solid-js": ">=1.9.0"
+    "@opencode/plugin": ">=2.0.0 <3",
+    "@opentui/core": ">=0.9.0",
+    "@opentui/solid": ">=0.9.0",
+    "solid-js": ">=1.9.0 <2"
+  },
+  "devDependencies": {
+    "@opencode/plugin": "^2.3.2",
+    "@opentui/core": "^0.9.7",
+    "@opentui/solid": "^0.9.7",
+    "@types/node": "^26.6.6",
+    "esbuild-plugin-solid": "^0.6.0",
+    "solid-js": "^1.9.20",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=22.6"
