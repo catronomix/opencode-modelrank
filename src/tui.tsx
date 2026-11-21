@@ -286,6 +286,15 @@ type SidebarProps = {
   open: () => Promise<void>
 }
 
+type Tone = "lead" | "second" | "third" | "plain" | "faint"
+
+const MEDALS: Tone[] = ["lead", "second", "third"]
+
+function tone(score: number | null, index: number): Tone {
+  if (score === null) return "faint"
+  return MEDALS[index] ?? "plain"
+}
+
 export function Sidebar(props: SidebarProps) {
   const table = createMemo(() => scales(props.store.entries))
   const rows = createMemo(() => {
@@ -301,10 +310,18 @@ export function Sidebar(props: SidebarProps) {
     return (entry.plans ?? [entry.provider]).includes(model.providerID as typeof entry.provider)
   }
   const shown = createMemo(() => rows().slice(0, Math.max(1, props.settings.rows)))
-  const accent = props.context.theme.text.action.primary.base
-  const muted = props.context.theme.text.muted
-  const faint = props.context.theme.text.faint
-  const warn = props.context.theme.text.feedback.warning.base
+  const tones = createMemo(() => {
+    const theme = props.context.theme
+    return {
+      lead: theme.text.action.primary.base,
+      second: theme.text.feedback.success.base,
+      third: theme.text.feedback.info.base,
+      cheap: theme.text.feedback.success.base,
+      plain: theme.text.muted,
+      faint: theme.text.faint,
+      warn: theme.text.feedback.warning.base,
+    }
+  })
 
   // The sidebar slot does not tell us its width, so measure our own box and
   // size the name column to whatever is actually left. A fixed width overflows
@@ -318,14 +335,13 @@ export function Sidebar(props: SidebarProps) {
   })
   const fit = (text: string) => truncate(text, Math.max(12, boxWidth() || 34))
 
-  const line = (row: ReturnType<typeof buildRows>[number], index: number) => {
-    const score = focusScore(row, props.settings.focus)
+  const line = (row: ReturnType<typeof buildRows>[number], index: number, score: number | null) => {
     const width = nameWidth()
-    const name = truncate(row.entry.name, width)
+    const name = truncate(row.entry.name, width).padEnd(width)
     const rankText = String(index + 1).padStart(2)
     const scoreText = score === null ? " --" : String(Math.round(score)).padStart(3)
-    const cost = row.entry.free ? "free" : money(row.tokenCost)
-    return `${rankText} ${name.padEnd(width)} │${scoreText} ${cost.padStart(5)}`
+    const cost = (row.entry.free ? "free" : money(row.tokenCost)).padStart(5)
+    return { head: `${rankText} ${name} │${scoreText} `, cost }
   }
 
   let root: BoxRenderable | undefined
@@ -342,21 +358,31 @@ export function Sidebar(props: SidebarProps) {
       }}
     >
       <box flexDirection="row">
-        <text fg={accent}>MODELS</text>
-        <text fg={muted}>{` ▸ ${SORT_LABEL[props.settings.sort]}`}</text>
+        <text fg={tones().lead}>MODELS</text>
+        <text fg={tones().plain}>{` ▸ ${SORT_LABEL[props.settings.sort]}`}</text>
       </box>
-      <text fg={faint}>{fit(`focus: ${FOCUS_LABEL[props.settings.focus]}`)}</text>
-      {props.store.status === "loading" ? <text fg={warn}>loading…</text> : null}
-      {props.store.status === "error" ? <text fg={warn}>{fit(props.store.note)}</text> : null}
-      {props.store.status === "ready" && shown().length === 0 ? <text fg={muted}>no models selected</text> : null}
+      <text fg={tones().faint}>{fit(`focus: ${FOCUS_LABEL[props.settings.focus]}`)}</text>
+      {props.store.status === "loading" ? <text fg={tones().warn}>loading…</text> : null}
+      {props.store.status === "error" ? <text fg={tones().warn}>{fit(props.store.note)}</text> : null}
+      {props.store.status === "ready" && shown().length === 0 ? <text fg={tones().plain}>no models selected</text> : null}
       <text> </text>
-      {shown().map((row, index) => (
-        <text fg={isCurrent(row.entry) ? accent : muted}>{`${isCurrent(row.entry) ? "▸" : " "}${line(row, index)}`}</text>
-      ))}
+      {shown().map((row, index) => {
+        const score = focusScore(row, props.settings.focus)
+        const parts = line(row, index, score)
+        const role = tone(score, index)
+        const currentRow = isCurrent(row.entry)
+        return (
+          <box flexDirection="row">
+            <text fg={currentRow ? tones().lead : tones()[role]}>{currentRow ? "▸" : " "}</text>
+            <text fg={tones()[role]}>{parts.head}</text>
+            <text fg={row.entry.free && role !== "faint" ? tones().cheap : tones()[role]}>{parts.cost}</text>
+          </box>
+        )
+      })}
       <text> </text>
-      <text fg={faint}>{fit(`${shown().length}/${rows().length} · /ocmodels · ${age(props.store.at)}`)}</text>
+      <text fg={tones().faint}>{fit(`${shown().length}/${rows().length} · /ocmodels · ${age(props.store.at)}`)}</text>
       {props.store.status === "ready" && rows().some((row) => row.score === null) ? (
-        <text fg={faint}>{fit(`${rows().filter((row) => row.score === null).length} unranked (1 benchmark or none)`)}</text>
+        <text fg={tones().faint}>{fit(`${rows().filter((row) => row.score === null).length} unranked (1 benchmark or none)`)}</text>
       ) : null}
     </box>
   )
