@@ -149,6 +149,11 @@ function isEntry(value: unknown): value is Entry {
   if (typeof entry.canonical !== "string" || typeof entry.free !== "boolean") return false
   if (!Array.isArray(entry.plans)) return false
   if (!entry.benchmarks || typeof entry.benchmarks !== "object") return false
+  if (entry.multipliers !== undefined) {
+    if (!Array.isArray(entry.multipliers)) return false
+    // A hand-edited cache must not push a non-finite factor into every price.
+    if (!entry.multipliers.every((multiplier) => Number.isFinite((multiplier as Multiplier | undefined)?.factor))) return false
+  }
   return NUMERIC_ENTRY_FIELDS.every((field) => Number.isFinite(entry[field] as number))
 }
 

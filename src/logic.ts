@@ -308,6 +308,11 @@ export function plansLabel(entry: Entry): string {
   return [...new Set(plans)].map(providerLabel).join("+")
 }
 
+/** Whether this row is offered on `plan`; an untagged entry belongs to its own provider. */
+export function isOnPlan(entry: Entry, plan: Provider): boolean {
+  return (entry.plans ?? [entry.provider]).includes(plan)
+}
+
 /**
  * One row per model/price/context identity: a model offered by both plans at
  * the same price is one comparison row, not two. `plans` records where it is

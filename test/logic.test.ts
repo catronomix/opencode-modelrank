@@ -4,7 +4,9 @@ import test from "node:test"
 import {
   buildRows,
   canonicalBenchmark,
+  collapse,
   focusScore,
+  isOnPlan,
   matchesWhen,
   median,
   money,
@@ -154,6 +156,20 @@ test("peak factor follows the read clock, not the fetch clock", () => {
   assert.equal(peakFactorAt(catalog[0], new Date("2026-01-01T23:00:00Z")), 2)
   assert.equal(offPeak.tokenCost, 2.2)
   assert.equal(peak.tokenCost, 4.4)
+})
+
+test("plan membership survives collapse, and falls back to the provider", () => {
+  const dual = collapse([
+    entry({ key: "opencode/x", provider: "opencode" }),
+    entry({ key: "opencode-go/x", provider: "opencode-go" }),
+  ])
+  assert.equal(dual.length, 1)
+  assert.equal(isOnPlan(dual[0], "opencode"), true)
+  assert.equal(isOnPlan(dual[0], "opencode-go"), true)
+  // A row from a snapshot that predates `plans` belongs to its own provider only.
+  const untagged: Entry = (({ plans: _plans, ...rest }) => rest)(entry({ provider: "opencode-go" })) as Entry
+  assert.equal(isOnPlan(untagged, "opencode-go"), true)
+  assert.equal(isOnPlan(untagged, "opencode"), false)
 })
 
 test("money never renders NaN as free", () => {

@@ -52,6 +52,11 @@ test("a snapshot with a malformed row is a miss", async () => {
   assert.equal(await readCache(), undefined)
   await writeFile(cacheFile(), JSON.stringify({ ...snapshot(), entries: [{ ...entry(), benchmarks: undefined }] }))
   assert.equal(await readCache(), undefined)
+  await writeFile(
+    cacheFile(),
+    JSON.stringify({ ...snapshot(), entries: [{ ...entry(), multipliers: [{ when: {}, factor: Number.POSITIVE_INFINITY }] }] }),
+  )
+  assert.equal(await readCache(), undefined)
 })
 
 test("an unreadable cache file is a miss", async () => {

@@ -9,6 +9,7 @@ import {
   FOCUSES,
   FOCUS_LABEL,
   focusScore,
+  isOnPlan,
   money,
   plansLabel,
   rank,
@@ -207,7 +208,7 @@ export default Plugin.define({
         if (choice === "__go" || choice === "__zen") {
           const plan = choice === "__go" ? "opencode-go" : "opencode"
           await updateSettings((draft) => {
-            draft.excluded = store.entries.filter((entry) => !(entry.plans ?? [entry.provider]).includes(plan)).map((entry) => entry.key)
+            draft.excluded = store.entries.filter((entry) => !isOnPlan(entry, plan)).map((entry) => entry.key)
           })
           continue
         }
@@ -317,7 +318,7 @@ export function Sidebar(props: SidebarProps) {
     const model = current()
     if (!model) return false
     if (model.modelID !== entry.id) return false
-    return (entry.plans ?? [entry.provider]).includes(model.providerID as typeof entry.provider)
+    return isOnPlan(entry, model.providerID as typeof entry.provider)
   }
   const shown = createMemo(() => rows().slice(0, Math.max(1, props.settings.rows)))
   const tones = createMemo(() => {
