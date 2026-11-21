@@ -12,6 +12,9 @@
 
 export type Provider = "opencode" | "opencode-go"
 
+/** A catalog price multiplier and the `when` conditions that activate it. */
+export type Multiplier = { when?: unknown; factor: number }
+
 export type Entry = {
   /** `provider/id` — the key the plugin stores in its exclusion list. */
   key: string
@@ -26,8 +29,13 @@ export type Entry = {
   cacheRead: number
   output: number
   context: number
-  /** Peak-hour price factor currently in effect (1 when no multiplier). */
+  /**
+   * Peak-hour factor at fetch time. Used only when `multipliers` is absent;
+   * otherwise the factor is re-evaluated against the current clock.
+   */
   peakFactor: number
+  /** Catalog multipliers, kept so the factor can follow the clock. */
+  multipliers?: Multiplier[]
   /** Plans whose listing this row represents (same model, same price). */
   plans: Provider[]
   benchmarks: Record<string, number>
@@ -84,6 +92,76 @@ export const FOCUS_LABEL: Record<Focus, string> = {
   "SWE-Bench Verified": "SWE-bench Verified",
   "SWE-Bench Pro": "SWE-bench Pro",
   "DeepSWE 1.1": "DeepSWE 1.1",
+}
+
+const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+
+/** `"22:00"` -> minutes since midnight. */
+function parseClock(text: unknown): number | undefined {
+  const match = typeof text === "string" ? /^(\d{1,2}):(\d{2})$/.exec(text) : null
+  return match ? Number(match[1]) * 60 + Number(match[2]) : undefined
+}
+
+const warned = new Set<string>()
+
+/**
+ * Matcher for the `when` grammar OpenCode uses on price multipliers.
+ *
+ * An unrecognised predicate fails closed: the condition is false, and the key
+ * is reported once, so a catalog change cannot quietly apply a wrong price.
+ */
+export function matchesWhen(when: unknown, now: Date): boolean {
+  if (!when || typeof when !== "object") return false
+  const spec = when as Record<string, unknown>
+  for (const [key, value] of Object.entries(spec)) {
+    if (key === "any") {
+      if (!Array.isArray(value) || !value.some((item) => matchesWhen(item, now))) return false
+      continue
+    }
+    if (key === "all") {
+      if (!Array.isArray(value) || !value.every((item) => matchesWhen(item, now))) return false
+      continue
+    }
+    if (key === "utc_days") {
+      const days = (value as { in?: string[] })?.in
+      if (!Array.isArray(days) || !days.includes(WEEKDAYS[now.getUTCDay()])) return false
+      continue
+    }
+    if (key === "utc_hours") {
+      const rule = value as { gte?: string; lt?: string }
+      const minutes = now.getUTCHours() * 60 + now.getUTCMinutes()
+      const low = parseClock(rule?.gte)
+      const high = parseClock(rule?.lt)
+      // A window that ends before it starts wraps midnight (22:00-04:00).
+      if (low !== undefined && high !== undefined && low > high) {
+        if (minutes < low && minutes >= high) return false
+        continue
+      }
+      if (low !== undefined && minutes < low) return false
+      if (high !== undefined && minutes >= high) return false
+      continue
+    }
+    if (!warned.has(key)) {
+      warned.add(key)
+      console.warn(`[ocmodels] unknown price condition "${key}" — treated as false`)
+    }
+    return false
+  }
+  return true
+}
+
+/** First multiplier whose conditions hold right now, else `fallback`. */
+export function multiplierFactor(multipliers: readonly Multiplier[] | undefined, now: Date, fallback = 1): number {
+  for (const multiplier of multipliers ?? []) {
+    if (matchesWhen(multiplier.when, now)) return multiplier.factor
+  }
+  return fallback
+}
+
+/** Peak factor for `entry` at `now`, following the clock when multipliers are known. */
+export function peakFactorAt(entry: Entry, now: Date): number {
+  if (!entry.multipliers?.length) return entry.peakFactor
+  return multiplierFactor(entry.multipliers, now)
 }
 
 /** Session assumptions, matching opencode-models' default mix. */
@@ -151,7 +229,7 @@ export function median(values: readonly number[]): number {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
 }
 
-export function buildRows(entries: readonly Entry[], table: Map<string, [number, number]>): Row[] {
+export function buildRows(entries: readonly Entry[], table: Map<string, [number, number]>, now: Date = new Date()): Row[] {
   return entries.map((entry) => {
     const derived: BenchScore[] = []
     for (const name of TRACKED) {
@@ -162,9 +240,10 @@ export function buildRows(entries: readonly Entry[], table: Map<string, [number,
       derived.push({ name, value: normalise(raw, bounds) })
     }
     const score = derived.length >= MIN_AXES ? median(derived.map((d) => d.value)) : null
-    const cacheRead = entry.cacheRead * entry.peakFactor
-    const input = entry.input * entry.peakFactor
-    const output = entry.output * entry.peakFactor
+    const peak = peakFactorAt(entry, now)
+    const cacheRead = entry.cacheRead * peak
+    const input = entry.input * peak
+    const output = entry.output * peak
     const tokenCost = 0.7 * input + 0.3 * output
     const fresh = SESSION.input * (1 - SESSION.cacheShare)
     const cached = SESSION.input * SESSION.cacheShare
@@ -183,12 +262,18 @@ export function focusScore(row: Row, focus: Focus): number | null {
 
 const byName = (a: Row, b: Row) => a.entry.name.localeCompare(b.entry.name)
 
+/** Sorts that order on a benchmark score; the rest order every row on their own key. */
+const SCORE_SORTS = new Set<Sort>(["value", "score"])
+
 export function rank(rows: readonly Row[], sort: Sort, focus: Focus): Row[] {
   const primary = (row: Row) => focusScore(row, focus)
+  // Only a score-dependent sort treats unranked rows as a separate bucket; for
+  // price/cache/context/name they are ordinary rows ordered by that key.
+  const needsScore = SCORE_SORTS.has(sort)
   const missing = (row: Row) => (primary(row) === null ? 1 : 0)
   const list = [...rows]
   list.sort((a, b) => {
-    if (missing(a) !== missing(b)) return missing(a) - missing(b)
+    if (needsScore && missing(a) !== missing(b)) return missing(a) - missing(b)
     switch (sort) {
       case "value": {
         if (a.value !== b.value) return b.value - a.value
@@ -246,8 +331,10 @@ export function collapse(entries: readonly Entry[]): Entry[] {
 }
 
 export function money(value: number): string {
-  if (!Number.isFinite(value)) return "free"
+  // A NaN price is a bug upstream; never let it read as a real "free".
+  if (Number.isNaN(value)) return "n/a"
   if (value === 0) return "free"
+  if (!Number.isFinite(value)) return "free"
   if (value < 0.1) return `$${value.toFixed(3)}`
   if (value < 10) return `$${value.toFixed(2)}`
   return `$${value.toFixed(0)}`

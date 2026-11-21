@@ -14,7 +14,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 
-import { pickBenchmarks, collapse, type Entry, type Provider } from "./logic.ts"
+import { pickBenchmarks, collapse, multiplierFactor, type Entry, type Multiplier, type Provider } from "./logic.ts"
 
 const ZEN_URL = "https://opencode.ai/zen/v1/models"
 const GO_URL = "https://opencode.ai/inference/go/v1/models"
@@ -23,6 +23,8 @@ const TIMEOUT_MS = 20_000
 const CONCURRENCY = 8
 /** A snapshot older than this is refreshed in the background. */
 export const MAX_AGE_MS = 6 * 60 * 60 * 1000
+/** Bumping this invalidates every cache written by an older shape. */
+export const SNAPSHOT_SCHEMA = 1
 
 type ListedModel = {
   id: string
@@ -43,6 +45,8 @@ type ModelRecord = {
 }
 
 export type Snapshot = {
+  /** Shape marker; a cache without the current value is discarded. */
+  schema: number
   at: number
   entries: Entry[]
   /** Canonical ids with no benchmark record, or that failed to fetch. */
@@ -63,48 +67,11 @@ async function getJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
   return (await response.json()) as T
 }
 
-/** Minimal matcher for the `when` grammar OpenCode uses on price multipliers. */
-function matchesWhen(when: unknown, now: Date): boolean {
-  if (!when || typeof when !== "object") return false
-  const spec = when as Record<string, unknown>
-  for (const [key, value] of Object.entries(spec)) {
-    if (key === "any") {
-      if (!Array.isArray(value) || !value.some((item) => matchesWhen(item, now))) return false
-      continue
-    }
-    if (key === "all") {
-      if (!Array.isArray(value) || !value.every((item) => matchesWhen(item, now))) return false
-      continue
-    }
-    if (key === "utc_days") {
-      const rule = value as { in?: string[] }
-      const day = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][now.getUTCDay()]
-      if (!rule?.in?.includes(day)) return false
-      continue
-    }
-    if (key === "utc_hours") {
-      const rule = value as { gte?: string; lt?: string }
-      const [, h = "0", m = "0"] = /^(\d+):(\d+)$/.exec(now.toISOString().slice(11, 16)) ?? []
-      const minutes = Number(h) * 60 + Number(m)
-      const parse = (text?: string) => {
-        const match = text ? /^(\d+):(\d+)$/.exec(text) : null
-        return match ? Number(match[1]) * 60 + Number(match[2]) : undefined
-      }
-      const low = parse(rule?.gte)
-      const high = parse(rule?.lt)
-      if (low !== undefined && minutes < low) return false
-      if (high !== undefined && minutes >= high) return false
-      continue
-    }
-  }
-  return true
-}
-
-function peakFactor(model: ListedModel, now: Date): number {
-  for (const multiplier of model.cost?.multipliers ?? []) {
-    if (typeof multiplier.factor === "number" && matchesWhen(multiplier.when, now)) return multiplier.factor
-  }
-  return 1
+/** Every numeric multiplier, in catalog order, ready to re-evaluate against the clock. */
+function multipliersOf(model: ListedModel): Multiplier[] {
+  return (model.cost?.multipliers ?? [])
+    .filter((multiplier) => typeof multiplier.factor === "number")
+    .map((multiplier) => ({ when: multiplier.when, factor: multiplier.factor as number }))
 }
 
 function toEntry(provider: Provider, model: ListedModel, benchmarks: Record<string, number>, now: Date): Entry {
@@ -112,6 +79,7 @@ function toEntry(provider: Provider, model: ListedModel, benchmarks: Record<stri
   const cacheRead = model.cost?.text?.input?.cache?.read ?? 0
   const output = model.cost?.text?.output?.price ?? 0
   const canonical = model.canonical_id ?? model.id
+  const multipliers = multipliersOf(model)
   return {
     key: `${provider}/${model.id}`,
     provider,
@@ -123,7 +91,8 @@ function toEntry(provider: Provider, model: ListedModel, benchmarks: Record<stri
     cacheRead,
     output,
     context: model.limit?.context ?? 0,
-    peakFactor: peakFactor(model, now),
+    peakFactor: multiplierFactor(multipliers, now),
+    multipliers,
     plans: [provider],
     benchmarks,
   }
@@ -166,15 +135,31 @@ export async function fetchSnapshot(signal?: AbortSignal): Promise<Snapshot> {
   const entries = listed.map(([provider, model]) =>
     toEntry(provider, model, byCanonical.get(model.canonical_id ?? model.id) ?? {}, now),
   )
-  return { at: Date.now(), entries: collapse(entries), missing }
+  return { schema: SNAPSHOT_SCHEMA, at: Date.now(), entries: collapse(entries), missing }
+}
+
+const NUMERIC_ENTRY_FIELDS = ["input", "cacheRead", "output", "context", "peakFactor"] as const
+
+/** A cached row is only usable if every field the renderer reads has its type. */
+function isEntry(value: unknown): value is Entry {
+  if (!value || typeof value !== "object") return false
+  const entry = value as Record<string, unknown>
+  if (typeof entry.key !== "string" || typeof entry.id !== "string" || typeof entry.name !== "string") return false
+  if (entry.provider !== "opencode" && entry.provider !== "opencode-go") return false
+  if (typeof entry.canonical !== "string" || typeof entry.free !== "boolean") return false
+  if (!Array.isArray(entry.plans)) return false
+  if (!entry.benchmarks || typeof entry.benchmarks !== "object") return false
+  return NUMERIC_ENTRY_FIELDS.every((field) => Number.isFinite(entry[field] as number))
 }
 
 export async function readCache(): Promise<Snapshot | undefined> {
   try {
-    const raw = await readFile(cacheFile(), "utf8")
-    const parsed = JSON.parse(raw) as Snapshot
-    if (!Array.isArray(parsed?.entries)) return undefined
-    return parsed
+    const parsed = JSON.parse(await readFile(cacheFile(), "utf8")) as Partial<Snapshot> | undefined
+    if (parsed?.schema !== SNAPSHOT_SCHEMA) return undefined
+    if (!Number.isFinite(parsed.at)) return undefined
+    if (!Array.isArray(parsed.entries) || !parsed.entries.every(isEntry)) return undefined
+    if (!Array.isArray(parsed.missing)) return undefined
+    return parsed as Snapshot
   } catch {
     return undefined
   }

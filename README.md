@@ -29,10 +29,11 @@ Or edit the TUI plugin list in `cli.json` directly:
 }
 ```
 
-The same entry works in `opencode.jsonc`'s `plugins` array: the package declares
-a server part (`.`) and a TUI part (`./tui`), so either file loads the sidebar
-and the command. The bare name installs the latest release; use `@next` for
-prereleases.
+The sidebar and the `/ocmodels` command are a TUI part, so they are configured
+in `cli.json`; the same entry is not enough in `opencode.jsonc`. That file loads
+the package's server part (`.`), which is an empty entrypoint kept so the
+package installs like any other plugin. The bare name installs the latest
+release; use `@next` for prereleases.
 
 No credentials are involved: everything is fetched from OpenCode's public
 endpoints, anonymously.

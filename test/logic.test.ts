@@ -5,8 +5,11 @@ import {
   buildRows,
   canonicalBenchmark,
   focusScore,
+  matchesWhen,
   median,
+  money,
   normalise,
+  peakFactorAt,
   pickBenchmarks,
   rank,
   scales,
@@ -106,4 +109,56 @@ test("peak factor scales every price", () => {
   const catalog = [entry({ key: "p", benchmarks: { "SWE-Bench Verified": 90, "Terminal-Bench 2.1": 90 }, peakFactor: 2 })]
   const [row] = buildRows(catalog, scales(catalog))
   assert.equal(row.tokenCost, 0.7 * 2 + 0.3 * 10)
+})
+
+test("cheap, cache, context and name sort every row, not just ranked ones", () => {
+  const catalog = [
+    entry({ key: "scored", name: "Scored", input: 10, cacheRead: 9, output: 10, context: 100_000, benchmarks: { "SWE-Bench Verified": 90, "Terminal-Bench 2.1": 90 } }),
+    entry({ key: "unscored", name: "Unscored", input: 1, cacheRead: 0.1, output: 1, context: 400_000, benchmarks: { "SWE-Bench Verified": 90 } }),
+  ]
+  const rows = buildRows(catalog, scales(catalog))
+  assert.equal(rows.find((row) => row.entry.key === "unscored")?.score, null)
+  assert.equal(rank(rows, "cheap", "overall")[0].entry.key, "unscored")
+  assert.equal(rank(rows, "context", "overall")[0].entry.key, "unscored")
+  assert.equal(rank(rows, "cache", "overall")[0].entry.key, "unscored")
+  assert.deepEqual(rank(rows, "name", "overall").map((row) => row.entry.key), ["scored", "unscored"])
+  // A score-dependent view still keeps unranked rows out of the ranking.
+  assert.equal(rank(rows, "score", "overall").at(-1)?.entry.key, "unscored")
+})
+
+test("utc_hours wraps midnight", () => {
+  const night = { gte: "22:00", lt: "04:00" }
+  assert.equal(matchesWhen({ utc_hours: night }, new Date("2026-01-01T22:00:00Z")), true)
+  assert.equal(matchesWhen({ utc_hours: night }, new Date("2026-01-01T23:30:00Z")), true)
+  assert.equal(matchesWhen({ utc_hours: night }, new Date("2026-01-02T03:59:00Z")), true)
+  assert.equal(matchesWhen({ utc_hours: night }, new Date("2026-01-02T04:00:00Z")), false)
+  assert.equal(matchesWhen({ utc_hours: night }, new Date("2026-01-01T21:59:00Z")), false)
+  assert.equal(matchesWhen({ utc_hours: night }, new Date("2026-01-01T12:00:00Z")), false)
+})
+
+test("an unknown when-predicate fails closed", () => {
+  assert.equal(matchesWhen({ utc_months: { in: [1] } }, new Date("2026-01-01T12:00:00Z")), false)
+  assert.equal(matchesWhen({ any: [{ utc_days: { in: ["thu"] } }, { utc_months: {} }] }, new Date("2026-01-01T12:00:00Z")), true)
+  assert.equal(matchesWhen({ all: [{ utc_days: { in: ["thu"] } }, { utc_months: {} }] }, new Date("2026-01-01T12:00:00Z")), false)
+  assert.equal(matchesWhen({ utc_days: { in: ["thu"] } }, new Date("2026-01-01T12:00:00Z")), true)
+})
+
+test("peak factor follows the read clock, not the fetch clock", () => {
+  const multipliers = [{ when: { utc_hours: { gte: "22:00", lt: "04:00" } }, factor: 2 }]
+  const base = { key: "peak", benchmarks: { "SWE-Bench Verified": 90, "Terminal-Bench 2.1": 90 }, peakFactor: 1, multipliers }
+  const catalog = [entry(base)]
+  const table = scales(catalog)
+  const offPeak = buildRows(catalog, table, new Date("2026-01-01T12:00:00Z"))[0]
+  const peak = buildRows(catalog, table, new Date("2026-01-01T23:00:00Z"))[0]
+  assert.equal(peakFactorAt(catalog[0], new Date("2026-01-01T12:00:00Z")), 1)
+  assert.equal(peakFactorAt(catalog[0], new Date("2026-01-01T23:00:00Z")), 2)
+  assert.equal(offPeak.tokenCost, 2.2)
+  assert.equal(peak.tokenCost, 4.4)
+})
+
+test("money never renders NaN as free", () => {
+  assert.equal(money(Number.NaN), "n/a")
+  assert.equal(money(0), "free")
+  assert.equal(money(Number.POSITIVE_INFINITY), "free")
+  assert.equal(money(0.05), "$0.050")
 })

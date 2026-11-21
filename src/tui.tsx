@@ -1,7 +1,7 @@
 import { Plugin } from "@opencode/plugin/tui"
 import type { Context } from "@opencode/plugin/tui/context"
 import type { BoxRenderable } from "@opentui/core"
-import { createMemo, createSignal } from "solid-js"
+import { createMemo, createSignal, onCleanup } from "solid-js"
 
 import { fetchSnapshot, readCache, writeCache, MAX_AGE_MS, type Snapshot } from "./data.ts"
 import {
@@ -205,9 +205,9 @@ export default Plugin.define({
           continue
         }
         if (choice === "__go" || choice === "__zen") {
-          const provider = choice === "__go" ? "opencode-go" : "opencode"
+          const plan = choice === "__go" ? "opencode-go" : "opencode"
           await updateSettings((draft) => {
-            draft.excluded = store.entries.filter((entry) => entry.provider !== provider).map((entry) => entry.key)
+            draft.excluded = store.entries.filter((entry) => !(entry.plans ?? [entry.provider]).includes(plan)).map((entry) => entry.key)
           })
           continue
         }
@@ -302,10 +302,15 @@ function isStale(at: number): boolean {
 
 export function Sidebar(props: SidebarProps) {
   const table = createMemo(() => scales(props.store.entries))
+  // Hourly price multipliers must follow the clock, so the rows memo reads a
+  // coarse tick instead of freezing the factor at mount time.
+  const [clock, setClock] = createSignal(new Date())
+  const timer = setInterval(() => setClock(new Date()), 60_000)
+  onCleanup(() => clearInterval(timer))
   const rows = createMemo(() => {
     const excluded = new Set(props.settings.excluded)
     const kept = props.store.entries.filter((entry) => !excluded.has(entry.key))
-    return rank(buildRows(kept, table()), props.settings.sort, props.settings.focus)
+    return rank(buildRows(kept, table(), clock()), props.settings.sort, props.settings.focus)
   })
   const current = () => props.context.ui.model.current?.()
   const isCurrent = (entry: Entry) => {
