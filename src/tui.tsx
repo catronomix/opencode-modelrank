@@ -250,7 +250,7 @@ export default Plugin.define({
 
     const unregister = context.ui.slot({
       append: "sidebar.content",
-      render: () => <Sidebar context={context} settings={settings} store={store} open={menu} />,
+      render: (slot) => <Sidebar context={context} settings={settings} store={store} open={menu} sessionID={slot.sessionID} />,
     })
 
     context.keymap.layer(() => ({
@@ -285,6 +285,8 @@ type SidebarProps = {
   settings: Settings
   store: Store
   open: () => Promise<void>
+  /** Absent on the home route, where there is no session to switch. */
+  sessionID?: string
 }
 
 const DAY_MS = 86_400_000
@@ -319,6 +321,23 @@ export function Sidebar(props: SidebarProps) {
     if (!model) return false
     if (model.modelID !== entry.id) return false
     return isOnPlan(entry, model.providerID as typeof entry.provider)
+  }
+  // A row can stand for the same model on both plans. Stay on the plan the
+  // session already uses; otherwise take the row's first listing.
+  const selectModel = async (row: ReturnType<typeof buildRows>[number]) => {
+    const sessionID = props.sessionID
+    if (!sessionID) {
+      props.context.ui.toast.show({ title: "OC Models", message: "Open a session to switch models from the sidebar.", variant: "warning" })
+      return
+    }
+    const providerID = current()?.providerID
+    const target = row.entry.plans.find((plan) => plan === providerID) ?? row.entry.plans[0]
+    try {
+      await props.context.client.session.switchModel({ sessionID, model: { id: row.entry.id, providerID: target } })
+      props.context.ui.toast.show({ title: "OC Models", message: `Switched to ${row.entry.name}`, variant: "success" })
+    } catch (error) {
+      props.context.ui.toast.show({ title: "OC Models", message: error instanceof Error ? error.message : String(error), variant: "error" })
+    }
   }
   const shown = createMemo(() => rows().slice(0, Math.max(1, props.settings.rows)))
   const tones = createMemo(() => {
@@ -393,7 +412,7 @@ export function Sidebar(props: SidebarProps) {
         const scoreFg = (shade === "strong" ? tones().strong ?? tones().heading : shade === "heading" ? tones().heading : undefined) ?? tones().plain
         const costFg = row.tokenCost < 1 ? tones().cheap ?? tones().plain : tones().plain
         return (
-          <box flexDirection="row">
+          <box flexDirection="row" onMouseDown={() => void selectModel(row)}>
             <text fg={currentRow ? tones().current : tones().plain}>{currentRow ? "▸" : " "}</text>
             <text fg={tones().plain}>{parts.head}</text>
             <text fg={scoreFg}>{parts.score}</text>
