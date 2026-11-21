@@ -19,21 +19,22 @@ It is a TypeScript re-make of [codesam88/opencode-models](https://github.com/cod
 ## Install
 
 ```sh
-opencode plugin add @catronomix/opencode-ocmodels@0.1.0
+opencode plugin add @catronomix/opencode-ocmodels
 ```
 
 Or edit the TUI plugin list in `cli.json` directly:
 
 ```json title="~/.config/opencode/cli.json"
 {
-  "plugins": ["@catronomix/opencode-ocmodels@0.1.0"]
+  "plugins": ["@catronomix/opencode-ocmodels"]
 }
 ```
 
 The same entry works in `opencode.jsonc`'s `plugins` array: the package declares
 a server part (`.`) and a TUI part (`./tui`), so either file loads the sidebar
-and the command. Pin the exact version; drop the `@version` suffix to track
-releases, or use `github:catronomix/opencode-ocmodels` to install from git.
+and the command. The bare name resolves to the latest release (`@latest` does
+the same); pinning a version is optional if you need to hold one, `@next` tracks
+prereleases, or use `github:catronomix/opencode-ocmodels` to install from git.
 
 No credentials are involved: everything is fetched from OpenCode's public
 endpoints, anonymously.

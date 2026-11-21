@@ -6,7 +6,12 @@
   },
   "description": "OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price, with a /ocmodels menu and a sidebar comparison.",
   "type": "module",
+  "homepage": "https://github.com/catronomix/opencode-ocmodels#readme",
+  "bugs": {
+    "url": "https://github.com/catronomix/opencode-ocmodels/issues"
+  },
   "license": "MIT",
+  "author": "Innocent Coppieters",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/catronomix/opencode-ocmodels.git"
@@ -20,6 +25,8 @@
     "zen",
     "go"
   ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
