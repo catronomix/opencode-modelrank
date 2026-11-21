@@ -356,6 +356,11 @@ export function Sidebar(props: SidebarProps) {
     }
   })
 
+  // Hovered rows take the theme's hovered secondary-action fill. Themes that
+  // resolve without it simply get no fill; the name lift still marks the row.
+  const [hovered, setHovered] = createSignal<string | null>(null)
+  const hoverFill = () => props.context.theme.background?.action?.secondary?.hovered ?? undefined
+
   // The sidebar slot does not tell us its width, so measure our own box and
   // size the name column to whatever is actually left. A fixed width overflows
   // once the host sidebar is narrower than the row.
@@ -411,10 +416,17 @@ export function Sidebar(props: SidebarProps) {
         const shade = scoreShade(score)
         const scoreFg = (shade === "strong" ? tones().strong ?? tones().heading : shade === "heading" ? tones().heading : undefined) ?? tones().plain
         const costFg = row.tokenCost < 1 ? tones().cheap ?? tones().plain : tones().plain
+        const isHovered = () => hovered() === row.entry.key
         return (
-          <box flexDirection="row" onMouseDown={() => void selectModel(row)}>
+          <box
+            flexDirection="row"
+            backgroundColor={isHovered() ? hoverFill() : undefined}
+            onMouseOver={() => setHovered(row.entry.key)}
+            onMouseOut={() => setHovered((key) => (key === row.entry.key ? null : key))}
+            onMouseDown={() => void selectModel(row)}
+          >
             <text fg={currentRow ? tones().current : tones().plain}>{currentRow ? "▸" : " "}</text>
-            <text fg={tones().plain}>{parts.head}</text>
+            <text fg={isHovered() ? tones().current : tones().plain}>{parts.head}</text>
             <text fg={scoreFg}>{parts.score}</text>
             <text fg={costFg}>{parts.cost}</text>
           </box>
