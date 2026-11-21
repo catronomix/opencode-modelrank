@@ -399,7 +399,7 @@ export function Sidebar(props: SidebarProps) {
       <box flexDirection="row">
         <text fg={tones().link}>{fit(footHead())}</text>
         {footRoom() > 0 ? (
-          <text fg={isStale(props.store.at) ? tones().error : tones().link}>{`${footSeparator}${truncate(age(props.store.at), footRoom())}`}</text>
+          <text fg={isStale(props.store.at) ? tones().error : tones().faint}>{`${footSeparator}${truncate(age(props.store.at), footRoom())}`}</text>
         ) : null}
       </box>
       {props.store.status === "ready" && rows().some((row) => row.score === null) ? (
