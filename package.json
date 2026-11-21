@@ -1,0 +1,27 @@
+{
+  "name": "opencode-ocmodels",
+  "version": "0.1.0",
+  "description": "OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price, with a /ocmodels menu and a sidebar comparison.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": ["opencode", "opencode-plugin", "models", "benchmarks", "pricing", "zen", "go"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./tui": "./src/tui.tsx"
+  },
+  "files": ["src"],
+  "scripts": {
+    "test": "node --test test/logic.test.ts"
+  },
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.6.6",
+    "@opentui/solid": ">=0.6.6",
+    "solid-js": ">=1.9.0"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}
