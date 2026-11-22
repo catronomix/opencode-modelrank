@@ -1,8 +1,8 @@
 # opencode-modelrank
 
-[![npm](https://img.shields.io/npm/v/@catronomix/opencode-modelrank)](https://www.npmjs.com/package/@catronomix/opencode-modelrank)
-[![license](https://img.shields.io/npm/l/@catronomix/opencode-modelrank)](LICENSE)
-[![node](https://img.shields.io/node/v/@catronomix/opencode-modelrank)](https://nodejs.org)
+[![npm](https://img.shields.io/npm/v/@catronomix/opencode-modelrank?cacheSeconds=3600)](https://www.npmjs.com/package/@catronomix/opencode-modelrank)
+[![license](https://img.shields.io/npm/l/@catronomix/opencode-modelrank?cacheSeconds=3600)](LICENSE)
+[![node](https://img.shields.io/node/v/@catronomix/opencode-modelrank?cacheSeconds=3600)](https://nodejs.org)
 
 Zen and Go sell overlapping model catalogs at different prices, and "which one
 should I actually run?" is not obvious from either list. This OpenCode V2 plugin
