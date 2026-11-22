@@ -4,6 +4,7 @@ import type { BoxRenderable } from "@opentui/core"
 import { createMemo, createSignal, onCleanup } from "solid-js"
 
 import { fetchSnapshot, readCache, writeCache, MAX_AGE_MS, type Snapshot } from "./data.ts"
+import { tones as resolveTones } from "./theme.ts"
 import {
   buildRows,
   FOCUSES,
@@ -340,21 +341,7 @@ export function Sidebar(props: SidebarProps) {
     }
   }
   const shown = createMemo(() => rows().slice(0, Math.max(1, props.settings.rows)))
-  const tones = createMemo(() => {
-    const theme = props.context.theme
-    const markdown = theme.markdown ?? {}
-    return {
-      current: theme.text.action.primary.base,
-      plain: theme.text.muted,
-      faint: theme.text.faint,
-      warn: theme.text.feedback.warning.base,
-      error: theme.text.feedback?.error?.base,
-      link: markdown.linkText,
-      heading: markdown.heading,
-      strong: markdown.strong,
-      cheap: markdown.emphasis,
-    }
-  })
+  const tones = createMemo(() => resolveTones(props.context.theme))
 
   // Hovered rows take the theme's hovered secondary-action fill. Themes that
   // resolve without it simply get no fill; the name lift still marks the row.
