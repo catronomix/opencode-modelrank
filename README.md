@@ -1,10 +1,16 @@
 # opencode-ocmodels
 
-An OpenCode V2 plugin that ranks **OpenCode Zen / Go** models by benchmark score
-against real per-token prices — a `/ocmodels` menu to choose which models and
-which sort order, and a live comparison in the sidebar.
+[![npm](https://img.shields.io/npm/v/@catronomix/opencode-ocmodels)](https://www.npmjs.com/package/@catronomix/opencode-ocmodels)
+[![license](https://img.shields.io/npm/l/@catronomix/opencode-ocmodels)](LICENSE)
+[![node](https://img.shields.io/node/v/@catronomix/opencode-ocmodels)](https://nodejs.org)
 
-It keeps these ranking rules from the original `ocm` CLI:
+Zen and Go sell overlapping model catalogs at different prices, and "which one
+should I actually run?" is not obvious from either list. This OpenCode V2 plugin
+puts benchmark score and real cost side by side: a `/ocmodels` menu to pick the
+models and the ranking you care about, and a live comparison in the sidebar
+while you work.
+
+The ranking keeps the rules from the original `ocm` CLI:
 
 - five tracked benchmarks — **Terminal-Bench 2.1**, **Terminal-Bench 4.0**,
   **SWE-Bench Verified**, **SWE-Bench Pro**, **DeepSWE 1.1**;
