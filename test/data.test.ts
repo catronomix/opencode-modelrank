@@ -7,8 +7,8 @@ import test, { after } from "node:test"
 import { cacheFile, readCache, SNAPSHOT_SCHEMA, writeCache, type Snapshot } from "../src/data.ts"
 import type { Entry } from "../src/logic.ts"
 
-const dir = await mkdtemp(join(tmpdir(), "ocmodels-cache-"))
-process.env.OPENCODE_OCMODELS_DATA = dir
+const dir = await mkdtemp(join(tmpdir(), "modelrank-cache-"))
+process.env.OPENCODE_MODELRANK_DATA = dir
 after(() => rm(dir, { recursive: true, force: true }))
 
 const entry = (over: Partial<Entry> = {}): Entry => ({

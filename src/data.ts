@@ -54,13 +54,13 @@ export type Snapshot = {
 }
 
 export function cacheFile(): string {
-  const dir = process.env.OPENCODE_OCMODELS_DATA ?? join(homedir(), ".cache", "opencode-ocmodels")
+  const dir = process.env.OPENCODE_MODELRANK_DATA ?? join(homedir(), ".cache", "opencode-modelrank")
   return join(dir, "snapshot.json")
 }
 
 async function getJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, {
-    headers: { "user-agent": "opencode-ocmodels" },
+    headers: { "user-agent": "opencode-modelrank" },
     signal: signal ?? AbortSignal.timeout(TIMEOUT_MS),
   })
   if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${url}`)

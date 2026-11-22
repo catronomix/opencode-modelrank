@@ -1,6 +1,6 @@
-# opencode-ocmodels
+# opencode-modelrank
 
-OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price, with a /ocmodels menu and a sidebar comparison.
+OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price, with a /modelrank menu and a sidebar comparison.
 
 ## Layout
 
@@ -19,8 +19,8 @@ OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price,
 
 ## Plugin IDs
 
-- server: `opencode-ocmodels`
-- TUI: `ocmodels.tui`
+- server: `opencode-modelrank`
+- TUI: `modelrank.tui`
 
 ## Publishing
 

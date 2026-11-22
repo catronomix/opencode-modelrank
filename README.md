@@ -1,12 +1,12 @@
-# opencode-ocmodels
+# opencode-modelrank
 
-[![npm](https://img.shields.io/npm/v/@catronomix/opencode-ocmodels)](https://www.npmjs.com/package/@catronomix/opencode-ocmodels)
-[![license](https://img.shields.io/npm/l/@catronomix/opencode-ocmodels)](LICENSE)
-[![node](https://img.shields.io/node/v/@catronomix/opencode-ocmodels)](https://nodejs.org)
+[![npm](https://img.shields.io/npm/v/@catronomix/opencode-modelrank)](https://www.npmjs.com/package/@catronomix/opencode-modelrank)
+[![license](https://img.shields.io/npm/l/@catronomix/opencode-modelrank)](LICENSE)
+[![node](https://img.shields.io/node/v/@catronomix/opencode-modelrank)](https://nodejs.org)
 
 Zen and Go sell overlapping model catalogs at different prices, and "which one
 should I actually run?" is not obvious from either list. This OpenCode V2 plugin
-puts benchmark score and real cost side by side: a `/ocmodels` menu to pick the
+puts benchmark score and real cost side by side: a `/modelrank` menu to pick the
 models and the ranking you care about, and a live comparison in the sidebar
 while you work.
 
@@ -24,18 +24,18 @@ The ranking keeps the rules from the original `ocm` CLI:
 ## Install
 
 ```sh
-opencode plugin add @catronomix/opencode-ocmodels
+opencode plugin add @catronomix/opencode-modelrank
 ```
 
 Or edit the TUI plugin list in `cli.json` directly:
 
 ```json title="~/.config/opencode/cli.json"
 {
-  "plugins": ["@catronomix/opencode-ocmodels"]
+  "plugins": ["@catronomix/opencode-modelrank"]
 }
 ```
 
-The sidebar and the `/ocmodels` command are a TUI part, so they are configured
+The sidebar and the `/modelrank` command are a TUI part, so they are configured
 in `cli.json`; the same entry is not enough in `opencode.jsonc`. That file loads
 the package's server part (`.`), which is an empty entrypoint kept so the
 package installs like any other plugin. The bare name installs the latest
@@ -53,7 +53,7 @@ The sidebar must be visible for the comparison panel to appear:
 
 ## Use
 
-`/ocmodels` (alias `/ocm`, also in the command palette as **Model comparison
+`/modelrank` (alias `/mr`, also in the command palette as **Model comparison
 (score vs price)**) opens a menu:
 
 | Entry | What it does |
@@ -80,8 +80,8 @@ Everything comes from OpenCode's own public endpoints:
 | `opencode.ai/inference/go/v1/models` | Go catalog, prices, peak-hour multipliers |
 | `opencode.ai/data/<lab>/<slug>.json` | benchmark records for the `canonical_id` |
 
-Results are cached at `~/.cache/opencode-ocmodels/snapshot.json`
-(`OPENCODE_OCMODELS_DATA` overrides the directory) and refreshed in the
+Results are cached at `~/.cache/opencode-modelrank/snapshot.json`
+(`OPENCODE_MODELRANK_DATA` overrides the directory) and refreshed in the
 background after 6 hours, or on demand from the menu. Models with no
 benchmark record still appear with prices and rank last when a score is
 required.

@@ -1,20 +1,20 @@
 {
-  "name": "@catronomix/opencode-ocmodels",
+  "name": "@catronomix/opencode-modelrank",
   "version": "0.1.0",
   "publishConfig": {
     "access": "public"
   },
-  "description": "OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price, with a /ocmodels menu and a sidebar comparison.",
+  "description": "OpenCode plugin: rank Zen/Go models by benchmark score and real per-token price, with a /modelrank menu and a sidebar comparison.",
   "type": "module",
-  "homepage": "https://github.com/catronomix/opencode-ocmodels#readme",
+  "homepage": "https://github.com/catronomix/opencode-modelrank#readme",
   "bugs": {
-    "url": "https://github.com/catronomix/opencode-ocmodels/issues"
+    "url": "https://github.com/catronomix/opencode-modelrank/issues"
   },
   "license": "MIT",
   "author": "Innocent Coppieters",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/catronomix/opencode-ocmodels.git"
+    "url": "git+https://github.com/catronomix/opencode-modelrank.git"
   },
   "keywords": [
     "opencode",

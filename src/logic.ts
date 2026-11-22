@@ -1,5 +1,5 @@
 /**
- * Pure ranking logic for the /ocmodels plugin.
+ * Pure ranking logic for the /modelrank plugin.
  *
  * Ported from codesam88/opencode-models:
  *  - five tracked benchmarks, each normalised to its own 0-100 scale over the
@@ -143,7 +143,7 @@ export function matchesWhen(when: unknown, now: Date): boolean {
     }
     if (!warned.has(key)) {
       warned.add(key)
-      console.warn(`[ocmodels] unknown price condition "${key}" — treated as false`)
+      console.warn(`[modelrank] unknown price condition "${key}" — treated as false`)
     }
     return false
   }

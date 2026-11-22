@@ -38,7 +38,7 @@ function age(at: number): string {
 }
 
 export default Plugin.define({
-  id: "ocmodels.tui",
+  id: "modelrank.tui",
   async setup(context) {
     // Reasonably loose typing: the storage and dialog shapes are stable but
     // the published generics differ between minor releases.
@@ -47,10 +47,10 @@ export default Plugin.define({
       memory<T>(name: string, options: { initial: T }): [T, (fn: (draft: T) => void) => void]
     }
 
-    const [settings, updateSettings] = storage.store<Settings>("ocmodels", {
+    const [settings, updateSettings] = storage.store<Settings>("modelrank", {
       initial: { sort: "value", focus: "overall", rows: 8, excluded: [] },
     })
-    const [store, updateStore] = storage.memory<Store>("ocmodels.data", {
+    const [store, updateStore] = storage.memory<Store>("modelrank.data", {
       initial: { status: "idle", at: 0, entries: [], note: "" },
     })
 
@@ -74,7 +74,7 @@ export default Plugin.define({
         apply(snapshot, false)
         if (!options.quiet) {
           context.ui.toast.show({
-            title: "OC Models",
+            title: "ModelRank",
             message: `${snapshot.entries.length} models ranked${snapshot.missing.length ? `, ${snapshot.missing.length} without data` : ""}.`,
             variant: "success",
           })
@@ -85,7 +85,7 @@ export default Plugin.define({
           draft.status = "error"
           draft.note = message
         })
-        if (!options.quiet) context.ui.toast.show({ title: "OC Models", message, variant: "error" })
+        if (!options.quiet) context.ui.toast.show({ title: "ModelRank", message, variant: "error" })
       }
     }
 
@@ -130,7 +130,7 @@ export default Plugin.define({
       await updateSettings((draft) => {
         draft.sort = choice as Sort
       })
-      await context.ui.toast.show({ title: "OC Models", message: `Sorted by ${sortLabel()}`, variant: "success" })
+      await context.ui.toast.show({ title: "ModelRank", message: `Sorted by ${sortLabel()}`, variant: "success" })
     }
 
     const pickFocus = async () => {
@@ -147,7 +147,7 @@ export default Plugin.define({
       await updateSettings((draft) => {
         draft.focus = choice as Focus
       })
-      await context.ui.toast.show({ title: "OC Models", message: `Focus: ${FOCUS_LABEL[choice as Focus]}`, variant: "success" })
+      await context.ui.toast.show({ title: "ModelRank", message: `Focus: ${FOCUS_LABEL[choice as Focus]}`, variant: "success" })
     }
 
     const pickRows = async () => {
@@ -164,7 +164,7 @@ export default Plugin.define({
 
     const pickModels = async () => {
       if (!store.entries.length) {
-        context.ui.toast.show({ title: "OC Models", message: "No models loaded yet. Use “Refresh data”.", variant: "warning" })
+        context.ui.toast.show({ title: "ModelRank", message: "No models loaded yet. Use “Refresh data”.", variant: "warning" })
         return
       }
       for (;;) {
@@ -226,7 +226,7 @@ export default Plugin.define({
       for (;;) {
         const count = included().length
         const choice = await context.ui.dialog.select({
-          title: "OC Models — benchmark + price comparison",
+          title: "ModelRank — benchmark + price comparison",
           options: [
             {
               title: `Sort — ${sortLabel()}`,
@@ -258,17 +258,17 @@ export default Plugin.define({
       mode: "global",
       commands: [
         {
-          id: "ocmodels.menu",
+          id: "modelrank.menu",
           title: "Model comparison (score vs price)",
           description: "Choose models and sorting for the Zen/Go score-per-dollar sidebar",
           group: "Models",
           palette: true,
-          slash: { name: "ocmodels", aliases: ["ocm"] },
+          slash: { name: "modelrank", aliases: ["mr"] },
           suggested: true,
           run: () => menu(),
         },
         {
-          id: "ocmodels.refresh",
+          id: "modelrank.refresh",
           title: "Refresh model comparison data",
           group: "Models",
           palette: true,
@@ -328,16 +328,16 @@ export function Sidebar(props: SidebarProps) {
   const selectModel = async (row: ReturnType<typeof buildRows>[number]) => {
     const sessionID = props.sessionID
     if (!sessionID) {
-      props.context.ui.toast.show({ title: "OC Models", message: "Open a session to switch models from the sidebar.", variant: "warning" })
+      props.context.ui.toast.show({ title: "ModelRank", message: "Open a session to switch models from the sidebar.", variant: "warning" })
       return
     }
     const providerID = current()?.providerID
     const target = row.entry.plans.find((plan) => plan === providerID) ?? row.entry.plans[0]
     try {
       await props.context.client.session.switchModel({ sessionID, model: { id: row.entry.id, providerID: target } })
-      props.context.ui.toast.show({ title: "OC Models", message: `Switched to ${row.entry.name}`, variant: "success" })
+      props.context.ui.toast.show({ title: "ModelRank", message: `Switched to ${row.entry.name}`, variant: "success" })
     } catch (error) {
-      props.context.ui.toast.show({ title: "OC Models", message: error instanceof Error ? error.message : String(error), variant: "error" })
+      props.context.ui.toast.show({ title: "ModelRank", message: error instanceof Error ? error.message : String(error), variant: "error" })
     }
   }
   const shown = createMemo(() => rows().slice(0, Math.max(1, props.settings.rows)))
@@ -372,7 +372,7 @@ export function Sidebar(props: SidebarProps) {
 
   let root: BoxRenderable | undefined
 
-  const footHead = () => `${shown().length}/${rows().length} · /ocmodels`
+  const footHead = () => `${shown().length}/${rows().length} · /modelrank`
   const footSeparator = " · "
   const footRoom = () => fitWidth() - Math.min(footHead().length, fitWidth()) - footSeparator.length
 
