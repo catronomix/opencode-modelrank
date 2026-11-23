@@ -1,6 +1,6 @@
 {
   "name": "@catronomix/opencode-modelrank",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publishConfig": {
     "access": "public"
   },
@@ -44,15 +44,22 @@
   ],
   "scripts": {
     "build": "tsup",
-    "prepack": "npm run build",
+    "prepack": "npm run build && node scripts/release-check.mjs",
+    "release-check": "node scripts/release-check.mjs",
     "test": "node --test test/logic.test.ts test/data.test.ts test/theme.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
     "@opencode/plugin": ">=2.0.0 <3",
+    "@opencode/theme": ">=2.3.2",
     "@opentui/core": ">=0.9.0",
     "@opentui/solid": ">=0.9.0",
     "solid-js": ">=1.9.0 <2"
+  },
+  "peerDependenciesMeta": {
+    "@opencode/theme": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@opencode/plugin": "^2.3.2",
